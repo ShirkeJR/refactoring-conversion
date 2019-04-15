@@ -2,32 +2,24 @@ package pl.dominisz;
 
 public class FileConverterService {
 
-    private static final Logger log = LoggerFactory.getLogger(FileConverterService.class);
+    private Logger log;
+    private NotificationClient notificationSender;
+    private FileConverter fileConverter;
 
-    public FileConverterService() {
+    public FileConverterService(NotificationClient notificationSender, FileConverter fileConverter, Logger logger) {
+        this.notificationSender = notificationSender;
+        this.fileConverter = fileConverter;
+        this.log = logger;
     }
 
-    public ConversionResult convert(String f1, String f2) {
-
-        log.info("Start converting app file");
-
-        ConversionResult res = new ConversionResult();
-
-        FileConverter c = new FileConverter();
-
-        // We convert file f1 and write result to file f2.
-        c.convert(f1, f2, res);
-
-        // If file conversion took too long we send an email notification.
-        if (res.getInf().get(0).getCode() != -1) {
-            log.info("Stop converting app file " + f1);
-            return res;
-        } else {
-            NotificationClient notificationSender =
-                    new NotificationClient("admins@some.domain.com", "emailLogin", "password123");
-            notificationSender.sendFailedNotification();
-            return res;
+    public ConversionResult convert(String sourceFileName, String destinationFileName) {
+        log.info("Start converting app file " + sourceFileName + " to " + destinationFileName);
+        ConversionResult conversionResult = fileConverter.convert(sourceFileName, destinationFileName);
+        log.info("Stop converting app file " + sourceFileName + " to " + destinationFileName);
+        if (conversionResult.timeout()) {
+            notificationSender.sendFailedNotification(conversionResult);
+            log.info("Sent failed notification to sender");
         }
+        return conversionResult;
     }
-
 }
